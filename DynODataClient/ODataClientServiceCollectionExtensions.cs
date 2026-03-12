@@ -5,6 +5,7 @@
 //              This is the main entry point for consumers of the library.
 // =---------------------------------------------------------------------------------
 
+using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -93,8 +94,15 @@ namespace DynODataClient
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("OData-MaxVersion", "4.0");
                 client.DefaultRequestHeaders.Add("OData-Version", "4.0");
-            })
-            .AddHttpMessageHandler<BasicAuthDelegatingHandler>();
+            }).ConfigurePrimaryHttpMessageHandler((serviceProvider) =>
+        {
+            var proxyPass = Environment.GetEnvironmentVariable("ProxySecret", EnvironmentVariableTarget.Machine);
+            var options = serviceProvider.GetRequiredService<IOptions<BasicAuthOptions>>().Value;
+            return new HttpClientHandler
+            {
+                Credentials = new NetworkCredential(options.Username, proxyPass)
+            };
+        });
 
             return services;
         }
